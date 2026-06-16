@@ -1,0 +1,644 @@
+/* App.css - Specific layouts for SmartCafe panels */
+
+/* Role Selector Page */
+.role-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  gap: 30px;
+  text-align: center;
+}
+
+.role-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.role-title span {
+  color: var(--accent);
+}
+
+.role-subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.role-cards {
+  display: flex;
+  gap: 30px;
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.role-card {
+  flex: 1;
+  min-width: 280px;
+  max-width: 360px;
+  cursor: pointer;
+  text-align: center;
+  padding: 40px 30px;
+}
+
+.role-icon {
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  display: inline-block;
+  transition: var(--transition);
+}
+
+.role-card:hover .role-icon {
+  transform: scale(1.15) rotate(5deg);
+}
+
+/* Customer Menu Layout */
+.menu-layout {
+  max-width: 600px; /* Mobile-first container width limit */
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  position: relative;
+  padding-bottom: 100px; /* space for checkout footer */
+  border-left: 1px solid var(--glass-border);
+  border-right: 1px solid var(--glass-border);
+}
+
+.menu-header {
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.menu-categories {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 15px 20px;
+  scrollbar-width: none;
+  background: var(--bg-primary);
+}
+
+.menu-categories::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.category-tab.active, .category-tab:hover {
+  background: var(--accent);
+  color: var(--text-dark);
+  border-color: var(--accent);
+}
+
+.search-bar {
+  padding: 0 20px 10px;
+}
+
+.items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+}
+
+.food-card {
+  display: flex;
+  gap: 15px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-md);
+  padding: 12px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.food-image {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-tertiary);
+}
+
+.food-info {
+  flex: 1;
+}
+
+.food-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.food-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.food-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.food-price {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.out-of-stock-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 14, 18, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--danger);
+  font-size: 1.1rem;
+  backdrop-filter: blur(2px);
+}
+
+/* Floating Cart Footer */
+.cart-footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-width: 600px; /* same as menu-layout */
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--glass-border);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+}
+
+.cart-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.cart-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* Quantity Selector Component */
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 9999px;
+  padding: 4px 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.qty-btn {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.qty-btn:hover {
+  color: var(--accent);
+}
+
+/* Order Tracker Page */
+.tracker-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.tracker-title {
+  margin-bottom: 30px;
+  font-size: 1.8rem;
+}
+
+.tracker-card {
+  padding: 30px;
+  margin-bottom: 25px;
+}
+
+.tracker-table-num {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 15px 0;
+}
+
+.tracker-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+  margin-top: 30px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.tracker-steps::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--bg-tertiary);
+}
+
+.tracker-step {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--bg-secondary);
+  position: absolute;
+  left: -20px;
+  transition: var(--transition);
+}
+
+.tracker-step.active .step-dot {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  transform: scale(1.3);
+}
+
+.tracker-step.completed .step-dot {
+  background: var(--success);
+}
+
+.tracker-step.completed {
+  color: var(--text-muted);
+}
+
+.tracker-step.active {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.order-items-summary {
+  margin-top: 25px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 15px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--glass-border);
+}
+
+/* Admin Dashboard Grid Layout */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  width: 260px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--glass-border);
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.admin-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-menu-item {
+  padding: 12px 16px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.admin-menu-item:hover, .admin-menu-item.active {
+  background: var(--bg-tertiary);
+  color: var(--text-main);
+}
+
+.admin-menu-item.active {
+  border-left: 4px solid var(--accent);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 40px;
+  background: var(--bg-primary);
+  overflow-y: auto;
+}
+
+/* Admin Stats Panel */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Live Kitchen Board (Kanban style) */
+.kitchen-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.board-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: rgba(22, 24, 32, 0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-md);
+  padding: 20px;
+  min-height: 500px;
+}
+
+.col-header {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--bg-tertiary);
+  padding-bottom: 12px;
+}
+
+.col-count {
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+}
+
+/* Ticket Styling */
+.ticket-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-secondary);
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-table {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ticket-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ticket-items {
+  border-top: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticket-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.ticket-item-qty {
+  color: var(--text-muted);
+}
+
+.ticket-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ticket-btn {
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 8px;
+}
+
+/* Menu Table (Admin Menu Manager) */
+.menu-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-secondary);
+}
+
+.menu-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.menu-table th, .menu-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.menu-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.menu-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Forms & Dialogs styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-md);
+  padding: 30px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+/* Switch Component for Toggle availability */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-tertiary);
+  transition: .4s;
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--text-muted);
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: rgba(16, 185, 129, 0.2);
+  border-color: var(--success);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+  background-color: var(--success);
+}
+
+/* Audio notifications notification alert sound styling */
+.sound-trigger-alert {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--accent);
+  padding: 10px 15px;
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
