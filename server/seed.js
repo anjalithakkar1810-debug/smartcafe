@@ -51,17 +51,19 @@ const seedItems = [
 
 const seedDatabase = async () => {
   try {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI, {
+      dbName: "smartcafe"
+    });
     console.log('Connected to MongoDB for seeding...');
-    
+
     // Clear existing menu items
     await MenuItem.deleteMany({});
     console.log('Cleared existing menu items.');
-    
+
     // Insert new seed items
     await MenuItem.insertMany(seedItems);
     console.log('Successfully seeded 5 tasty dishes into menu database!');
-    
+
     mongoose.connection.close();
     process.exit(0);
   } catch (error) {

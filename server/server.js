@@ -11,6 +11,7 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
 
+
 const app = express();
 
 app.use(cors());
@@ -29,8 +30,9 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/smartcafe';
 
-mongoose
-  .connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, {
+  dbName: "smartcafe"
+})
   .then(() => {
     console.log('MongoDB connected successfully');
     app.listen(PORT, () => {
