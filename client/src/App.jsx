@@ -154,6 +154,19 @@ function App() {
 
     }
   };
+  useEffect(() => {
+    const savedView = localStorage.getItem("view");
+    const savedOrderId = localStorage.getItem("activeOrderId");
+
+    if (savedView) {
+      setView(savedView);
+    }
+
+    if (savedOrderId) {
+      setActiveOrderId(savedOrderId);
+
+    }
+  }, []);
 
   useEffect(() => {
     if (
@@ -386,6 +399,10 @@ function App() {
       setRating(5);
       setReview("");
 
+      // Clear saved tracker state
+      localStorage.removeItem("view");
+      localStorage.removeItem("activeOrderId");
+
     } catch (error) {
       console.error(error);
       alert("Failed to submit review.");
@@ -441,21 +458,24 @@ function App() {
       const createdOrder = await createOrder(orderData);
 
       setActiveOrderId(createdOrder._id);
+      localStorage.setItem("activeOrderId", createdOrder._id);
+
       setActiveOrder(createdOrder);
 
       setRatingSubmitted(false);
 
       setCart({});
       setIsCheckoutOpen(false);
+
       setView("customer-tracker");
-
+      localStorage.setItem("view", "customer-tracker");
     } catch (error) {
-
-      console.error(error);
-      alert(error.message);
+      console.error("Error placing order:", error);
+      alert("Failed to place order. Please try again.");
 
     }
   };
+
 
   // Admin Authentication
   const handleAdminLogin = async (e) => {
@@ -867,7 +887,7 @@ function App() {
                     <div className="food-info">
                       <div className="food-name">{item.name}</div>
                       <div className="food-desc">{item.description || 'Tasty cafe dish cooked fresh on order.'}</div>
-                     
+
                       <div className="food-footer">
                         <div className="food-price">₹{item.price}</div>
 
@@ -1584,6 +1604,7 @@ function App() {
       )}
     </div>
   );
-
 }
+
+
 export default App;
