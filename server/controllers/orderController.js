@@ -1,4 +1,5 @@
 import Order from '../models/Order.js';
+import Rating from "../models/Rating.js";
 
 export const createOrder = async (req, res) => {
     const { tableNumber, items, totalAmount } = req.body;
@@ -69,5 +70,63 @@ export const updateOrderStatus = async (req, res) => {
         res.json(updatedOrder);
     } catch (error) {
         res.status(400).json({ message: 'Error updating order status: ' + error.message });
+    }
+};
+
+export const getDashboardStats = async (req, res) => {
+    try {
+        const orders = await Order.find().populate("items.menuItem");
+        const ratings = await Rating.find();
+
+        // Total Revenue
+        const totalRevenue = orders
+            .filter(order => order.status === "served")
+            .reduce((sum, order) => sum + order.totalAmount, 0);
+
+        // Total Orders
+        const totalOrders = orders.length;
+
+        // Average Rating
+        const averageRating =
+            ratings.length > 0
+                ? (
+                    ratings.reduce((sum, r) => sum + r.stars, 0) /
+                    ratings.length
+                ).toFixed(1)
+                : 0;
+
+        // Top Selling Item
+        const itemCount = {};
+
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                const name = item.menuItem?.name;
+
+                if (!name) return;
+
+                itemCount[name] =
+                    (itemCount[name] || 0) + item.quantity;
+            });
+        });
+
+        let topSellingItem = "N/A";
+
+        if (Object.keys(itemCount).length > 0) {
+            topSellingItem = Object.keys(itemCount).reduce((a, b) =>
+                itemCount[a] > itemCount[b] ? a : b
+            );
+        }
+
+        res.json({
+            totalRevenue,
+            totalOrders,
+            averageRating,
+            topSellingItem,
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: error.message,
+        });
     }
 };

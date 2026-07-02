@@ -6,7 +6,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import menuRoutes from './routes/menu.js';
 import orderRoutes from './routes/orders.js';
-app.use("/api/reviews", reviewRoutes);
+import reviewRoutes from './routes/reviews.js';
+import ratingRoutes from "./routes/ratingRoutes.js";
 
 import { errorHandler } from './middleware/errorMiddleware.js';
 
@@ -22,7 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
-
+app.use('/api/ratings', ratingRoutes);
 app.use(errorHandler);
 
 app.get('/', (req, res) => {

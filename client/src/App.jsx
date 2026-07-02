@@ -5,13 +5,21 @@ import {
   registerUser
 } from "./services/authService";
 
+import { submitRating } from "./services/ratingService";
+import SalesChart from "./components/Admin/SalesChart";
+import SalesPieChart from "./components/Admin/SalesPieChart";
+import OrdersBarChart from "./components/Admin/OrdersBarChart";
+import exportSalesReport from "./utils/exportSalesReport";
+
 import {
   createOrder,
   getOrderById,
   getActiveOrders,
   getOrderHistory,
-  updateOrderStatus
+  updateOrderStatus,
+  getDashboardStats
 } from "./services/orderService";
+
 
 import {
   getAllMenu,
@@ -21,13 +29,16 @@ import {
   toggleMenuAvailability
 } from "./services/menuService";
 
+
+
 import AdminMenu from "./components/Admin/AdminMenu";
 import Header from "./components/Shared/Header";
 import AdminLogin from "./components/Admin/AdminLogin";
 import CheckoutModal from "./components/Customer/CheckoutModal";
 import CustomerTracker from "./components/Customer/CustomerTracker";
-
-
+import { Toaster, toast } from "react-hot-toast";
+import RatingModal from "./components/Customer/RatingModal";
+import { getRatings } from "./services/ratingService";
 
 function App() {
   // Navigation & Role Views
@@ -39,6 +50,11 @@ function App() {
   const [menuLoading, setMenuLoading] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [rating, setRating] = useState(5);
+  const [review, setReview] = useState("");
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
 
   // Customer Cart & Order states
   const [cart, setCart] = useState({}); // { itemId: quantity }
@@ -46,6 +62,9 @@ function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
+  const [estimatedTime, setEstimatedTime] = useState(20);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Admin states
   const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken') || '');
@@ -54,11 +73,16 @@ function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
   const [adminActiveTab, setAdminActiveTab] = useState('orders'); // 'orders' | 'menu-manager' | 'stats'
+  const [ratings, setRatings] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Admin Live Orders & Stats
   const [activeOrders, setActiveOrders] = useState([]);
   const [ordersHistory, setOrdersHistory] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+
+  const [showNewOrderPopup, setShowNewOrderPopup] = useState(false);
+  const [latestOrder, setLatestOrder] = useState(null);
 
   // Admin Add/Edit Menu Item Modal State
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
@@ -77,6 +101,12 @@ function App() {
   const previousOrdersCountRef = useRef(0);
   const [qrTableNumber, setQrTableNumber] = useState('');
 
+  const [dashboardStats, setDashboardStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    averageRating: 0,
+    topSellingItem: "N/A",
+  });
   // Synth Audio notification for new orders
   const playNewOrderSound = () => {
     if (!soundEnabled) return;
@@ -125,6 +155,25 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if (
+      view === "admin-dashboard" &&
+      adminActiveTab === "stats" &&
+      adminToken
+    ) {
+      const fetchDashboardStats = async () => {
+        try {
+          const data = await getDashboardStats(adminToken);
+          setDashboardStats(data);
+        } catch (error) {
+          console.error("Dashboard Stats Error:", error);
+        }
+      };
+
+      fetchDashboardStats();
+    }
+  }, [view, adminActiveTab, adminToken]);
+
   // Initial menu load
   useEffect(() => {
     fetchMenu();
@@ -137,6 +186,21 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (view === "admin-dashboard" && adminActiveTab === "reviews") {
+      const fetchRatings = async () => {
+        try {
+          const data = await getRatings();
+          setRatings(data);
+        } catch (error) {
+          console.error("Error fetching ratings:", error);
+        }
+      };
+
+      fetchRatings();
+    }
+  }, [view, adminActiveTab]);
+
   // Customer: Poll Order Status when in tracker view
   useEffect(() => {
     let intervalId;
@@ -147,11 +211,17 @@ function App() {
         try {
 
           const data = await getOrderById(activeOrderId);
+          console.log("current Order", data);
 
           setActiveOrder(data);
 
-          if (data.status === "served") {
-            // Order complete
+          if (
+            data.status === "served" &&
+            !data.isRated &&
+            !showRatingModal
+          ) {
+            console.log("Opening popup");
+            setShowRatingModal(true);
           }
 
         } catch (error) {
@@ -171,7 +241,16 @@ function App() {
       }
     };
 
-  }, [view, activeOrderId]);
+  }, [view, activeOrderId, ratingSubmitted, showRatingModal]);
+  useEffect(() => {
+    if (!activeOrderId) return;
+
+    const timer = setInterval(() => {
+      setEstimatedTime((prev) => Math.max(prev - 1, 0));
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, [activeOrderId]);
 
   // Admin: Poll Active Orders when on Dashboard
 
@@ -196,7 +275,18 @@ function App() {
           if (data.length > previousOrdersCountRef.current) {
 
             if (previousOrdersCountRef.current > 0) {
+
               playNewOrderSound();
+
+              const newest = data[data.length - 1];
+
+              setLatestOrder(newest);
+              setShowNewOrderPopup(true);
+
+              setTimeout(() => {
+                setShowNewOrderPopup(false);
+              }, 5000);
+
             }
 
           }
@@ -253,6 +343,19 @@ function App() {
     }
   }, [view, adminToken, adminActiveTab]);
 
+  const filteredOrders = activeOrders.filter((order) => {
+    const matchTable = order.tableNumber
+      .toString()
+      .includes(orderSearch);
+
+    const matchStatus =
+      statusFilter === "all" || order.status === statusFilter;
+
+    return matchTable && matchStatus;
+  });
+
+
+
   // Customer Cart logic
   const handleAddToCart = (itemId) => {
     setCart((prev) => ({
@@ -260,6 +363,35 @@ function App() {
       [itemId]: (prev[itemId] || 0) + 1
     }));
   };
+
+  const handleSubmitRating = async () => {
+    try {
+      console.log("Submitting review...");
+
+      await submitRating({
+        orderId: activeOrder._id,
+        tableNumber: activeOrder.tableNumber,
+        stars: rating,
+        review,
+      });
+
+      console.log("Review submitted successfully");
+
+      setRatingSubmitted(true);
+      console.log("ratingSubmitted = true");
+
+      setShowRatingModal(false);
+      console.log("Modal closed");
+
+      setRating(5);
+      setReview("");
+
+    } catch (error) {
+      console.error(error);
+      alert("Failed to submit review.");
+    }
+  };
+
 
   const handleRemoveFromCart = (itemId) => {
     setCart((prev) => {
@@ -310,6 +442,8 @@ function App() {
 
       setActiveOrderId(createdOrder._id);
       setActiveOrder(createdOrder);
+
+      setRatingSubmitted(false);
 
       setCart({});
       setIsCheckoutOpen(false);
@@ -582,6 +716,55 @@ function App() {
 
   return (
     <div className="App">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+        }}
+      />
+      {showNewOrderPopup && latestOrder && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            background: "#111827",
+            color: "#fff",
+            padding: "16px",
+            borderRadius: "12px",
+            width: "300px",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+            zIndex: 9999,
+            borderLeft: "5px solid #f59e0b",
+            animation: "slideIn 0.3s ease"
+          }}
+        >
+          <h3 style={{ margin: 0 }}>🔔 New Order Received!</h3>
+
+          <p style={{ marginTop: "10px" }}>
+            🍽 Table <b>{latestOrder.tableNumber}</b>
+          </p>
+
+          <p>
+            🕒{" "}
+            {new Date(latestOrder.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setAdminActiveTab("orders");
+              setShowNewOrderPopup(false);
+            }}
+            style={{ marginTop: "10px", width: "100%" }}
+          >
+            View Order
+          </button>
+        </div>
+      )}
       {/* HEADER BAR (Visible unless inside mobile customer views for immersive feels) */}
       {view !== 'customer-menu' && view !== 'customer-tracker' && (
         <Header
@@ -684,6 +867,7 @@ function App() {
                     <div className="food-info">
                       <div className="food-name">{item.name}</div>
                       <div className="food-desc">{item.description || 'Tasty cafe dish cooked fresh on order.'}</div>
+                     
                       <div className="food-footer">
                         <div className="food-price">₹{item.price}</div>
 
@@ -725,29 +909,31 @@ function App() {
           )}
 
           {/* TABLE NUMBER & CHECKOUT DIALOG MODAL */}
-         {isCheckoutOpen && (
-  <CheckoutModal
-    cart={cart}
-    menuItems={menuItems}
-    getCartTotal={getCartTotal}
-    tableNumber={tableNumber}
-    setTableNumber={setTableNumber}
-    setIsCheckoutOpen={setIsCheckoutOpen}
-    handlePlaceOrder={handlePlaceOrder}
-  />
-)}
-        </div>  
+          {isCheckoutOpen && (
+            <CheckoutModal
+              cart={cart}
+              menuItems={menuItems}
+              getCartTotal={getCartTotal}
+              tableNumber={tableNumber}
+              setTableNumber={setTableNumber}
+              setIsCheckoutOpen={setIsCheckoutOpen}
+              handlePlaceOrder={handlePlaceOrder}
+            />
+          )}
+        </div>
       )}
 
       {/* VIEW 3: CUSTOMER ORDER LIVE TRACKER */}
-   {view === "customer-tracker" && (
-  <CustomerTracker
-    activeOrder={activeOrder}
-    activeOrderId={activeOrderId}
-    tableNumber={tableNumber}
-    setView={setView}
-  />
-)}
+      {view === "customer-tracker" && (
+        <CustomerTracker
+          activeOrder={activeOrder}
+          activeOrderId={activeOrderId}
+          tableNumber={tableNumber}
+          estimatedTime={estimatedTime}
+          setView={setView}
+        />
+      )}
+
 
       {/* VIEW 4: STAFF/ADMIN LOGIN */}
       {view === "admin-login" && (
@@ -766,15 +952,22 @@ function App() {
       {view === 'admin-dashboard' && (
         <div className="admin-layout">
           {/* SIDEBAR */}
-          <aside className="admin-sidebar">
+          <button
+            className="menu-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            ☰
+          </button>
+
+          <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
             <div>
               <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '5px' }}>☕ Staff Control</div>
               <div style={{ color: 'var(--accent)', fontSize: '0.8rem', fontWeight: '600' }}>ROLE: {adminUser?.role?.toUpperCase()}</div>
             </div>
-
             <AdminMenu
               adminActiveTab={adminActiveTab}
               setAdminActiveTab={setAdminActiveTab}
+              setSidebarOpen={setSidebarOpen}
             />
 
             <div style={{ marginTop: 'auto' }}>
@@ -785,6 +978,13 @@ function App() {
               </button>
             </div>
           </aside>
+
+          {sidebarOpen && (
+            <div
+              className="sidebar-overlay"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
 
           {/* DASHBOARD CONTENT BODY */}
           <main className="admin-content">
@@ -809,6 +1009,41 @@ function App() {
                     />
                   </div>
                 </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "15px",
+                    marginBottom: "20px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="🔍 Search by Table No."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    style={{
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #ccc",
+                      minWidth: "220px",
+                    }}
+                  />
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    style={{
+                      padding: "10px",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <option value="all">All Orders</option>
+                    <option value="pending">Pending</option>
+                    <option value="cooking">Preparing</option>
+                    <option value="ready">Ready</option>
+                  </select>
+                </div>
 
                 <div className="kitchen-board">
                   {/* Column 1: PENDING */}
@@ -816,11 +1051,11 @@ function App() {
                     <div className="col-header">
                       <span>NEW ORDERS</span>
                       <span className="col-count badge badge-pending">
-                        {activeOrders.filter((o) => o.status === 'pending').length}
+                        {filteredOrders.filter((o) => o.status === 'pending').length}
                       </span>
                     </div>
 
-                    {activeOrders.filter((o) => o.status === 'pending').map((order) => (
+                    {filteredOrders.filter((o) => o.status === 'pending').map((order) => (
                       <div key={order._id} className="card ticket-card" style={{ borderLeft: '4px solid var(--warning)' }}>
                         <div className="ticket-header">
                           <span className="ticket-table">Table {order.tableNumber}</span>
@@ -851,11 +1086,11 @@ function App() {
                     <div className="col-header">
                       <span>PREPARING</span>
                       <span className="col-count badge badge-cooking">
-                        {activeOrders.filter((o) => o.status === 'cooking').length}
+                        {filteredOrders.filter((o) => o.status === 'cooking').length}
                       </span>
                     </div>
 
-                    {activeOrders.filter((o) => o.status === 'cooking').map((order) => (
+                    {filteredOrders.filter((o) => o.status === 'cooking').map((order) => (
                       <div key={order._id} className="card ticket-card" style={{ borderLeft: '4px solid var(--info)' }}>
                         <div className="ticket-header">
                           <span className="ticket-table">Table {order.tableNumber}</span>
@@ -887,11 +1122,10 @@ function App() {
                     <div className="col-header">
                       <span>READY TO SERVE</span>
                       <span className="col-count badge badge-ready">
-                        {activeOrders.filter((o) => o.status === 'ready').length}
+                        {filteredOrders.filter((o) => o.status === 'ready').length}
                       </span>
                     </div>
-
-                    {activeOrders.filter((o) => o.status === 'ready').map((order) => (
+                    {filteredOrders.filter((o) => o.status === 'ready').map((order) => (
                       <div key={order._id} className="card ticket-card" style={{ borderLeft: '4px solid var(--success)' }}>
                         <div className="ticket-header">
                           <span className="ticket-table">Table {order.tableNumber}</span>
@@ -924,7 +1158,14 @@ function App() {
             {/* TAB B: MENU MANAGER */}
             {adminActiveTab === 'menu-manager' && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div
+                  className="menu-header"
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '30px'
+                  }}>
                   <div>
                     <h1>Menu Item Manager</h1>
                     <p style={{ color: 'var(--text-muted)' }}>Configure dishes, descriptions, prices, and stock limits</p>
@@ -945,17 +1186,22 @@ function App() {
                         <th style={{ textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="desktop-menu-table">
                       {menuItems.map((item) => (
                         <tr key={item._id}>
                           <td>
                             <div style={{ fontWeight: 600 }}>{item.name}</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description || 'No description'}</div>
+                            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                              {item.description || "No description"}
+                            </div>
                           </td>
+
                           <td>
-                            <span className="badge badge-cooking" style={{ fontSize: '0.7rem' }}>{item.category}</span>
+                            <span className="badge badge-cooking">{item.category}</span>
                           </td>
-                          <td style={{ fontWeight: 'bold' }}>₹{item.price}</td>
+
+                          <td style={{ fontWeight: "bold" }}>₹{item.price}</td>
+
                           <td>
                             <label className="switch">
                               <input
@@ -966,17 +1212,17 @@ function App() {
                               <span className="slider"></span>
                             </label>
                           </td>
-                          <td style={{ textAlign: 'right' }}>
+
+                          <td style={{ textAlign: "right" }}>
                             <button
                               className="btn btn-secondary"
-                              style={{ padding: '6px 12px', fontSize: '0.8rem', marginRight: '10px' }}
                               onClick={() => openEditMenuModal(item)}
                             >
                               Edit
                             </button>
+
                             <button
                               className="btn btn-danger"
-                              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                               onClick={() => handleDeleteMenuItem(item._id)}
                             >
                               Delete
@@ -986,7 +1232,119 @@ function App() {
                       ))}
                     </tbody>
                   </table>
+                  <div className="mobile-menu-cards">
+                    {menuItems.map((item) => (
+                      <div className="menu-card" key={item._id}>
+                        <h3>{item.name}</h3>
+
+                        <p>{item.description || "No description"}</p>
+
+                        <div><strong>Category:</strong> {item.category}</div>
+                        <div><strong>Price:</strong> ₹{item.price}</div>
+
+                        <div style={{ margin: "10px 0" }}>
+                          <label className="switch">
+                            <input
+                              type="checkbox"
+                              checked={item.isAvailable}
+                              onChange={() => handleToggleMenuAvailability(item)}
+                            />
+                            <span className="slider"></span>
+                          </label>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            marginTop: "15px",
+                          }}
+                        >
+                          <button
+                            className="btn btn-secondary"
+                            style={{ flex: 1 }}
+                            onClick={() => openEditMenuModal(item)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="btn btn-danger"
+                            style={{ flex: 1 }}
+                            onClick={() => handleDeleteMenuItem(item._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              </div>
+            )}
+            {/* TAB D: CUSTOMER REVIEWS */}
+            {adminActiveTab === "reviews" && (
+              <div>
+                <h1 style={{ marginBottom: "20px" }}>
+                  ⭐ Customer Reviews
+                </h1>
+                <div className="stats-grid" style={{ marginBottom: "25px" }}>
+                  <div className="card stat-card">
+                    <span className="stat-label">⭐ Average Rating</span>
+
+                    <span className="stat-value">
+                      {ratings.length
+                        ? (
+                          ratings.reduce((sum, r) => sum + r.stars, 0) /
+                          ratings.length
+                        ).toFixed(1)
+                        : "0.0"}
+                    </span>
+                  </div>
+
+                  <div className="card stat-card">
+                    <span className="stat-label">📝 Total Reviews</span>
+
+                    <span className="stat-value">
+                      {ratings.length}
+                    </span>
+                  </div>
+                </div>
+
+                {ratings.length === 0 ? (
+                  <div className="card">
+                    <p>No reviews yet.</p>
+                  </div>
+                ) : (
+                  ratings.map((item) => (
+                    <div
+                      key={item._id}
+                      className="card"
+                      style={{ marginBottom: "15px" }}
+                    >
+                      <h3>{"⭐".repeat(item.stars)}</h3>
+
+                      <p style={{ margin: "10px 0" }}>
+                        {item.review || "No review text"}
+                      </p>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginTop: "10px",
+                          color: "var(--text-muted)",
+                          fontSize: "0.85rem"
+                        }}
+                      >
+                        <span>🪑 Table {item.tableNumber}</span>
+
+                        <span>
+                          {new Date(item.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             )}
 
@@ -994,20 +1352,59 @@ function App() {
             {adminActiveTab === 'stats' && (
               <div>
                 <h1 style={{ marginBottom: '30px' }}>Sales & Analytics Dashboard</h1>
+                <button
+                  onClick={() =>
+                    exportSalesReport(dashboardStats, ordersHistory)
+                  }
+                  style={{
+                    padding: "10px 20px",
+                    background: "#f59e0b",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    marginBottom: "20px"
+                  }}
+                >
+                  📄 Export Sales Report
+                </button>
 
                 <div className="stats-grid">
+
                   <div className="card stat-card">
-                    <span className="stat-label">Total Completed Revenue</span>
-                    <span className="stat-value">₹{getTotalSalesRevenue()}</span>
+                    <span className="stat-label">💰 Total Revenue</span>
+                    <span className="stat-value">
+                      ₹{dashboardStats.totalRevenue}
+                    </span>
                   </div>
+
                   <div className="card stat-card">
-                    <span className="stat-label">Orders Handled</span>
-                    <span className="stat-value">{ordersHistory.length}</span>
+                    <span className="stat-label">📦 Total Orders</span>
+                    <span className="stat-value">
+                      {dashboardStats.totalOrders}
+                    </span>
                   </div>
+
                   <div className="card stat-card">
-                    <span className="stat-label">Active Queue size</span>
-                    <span className="stat-value">{activeOrders.length} orders</span>
+                    <span className="stat-label">⭐ Average Rating</span>
+                    <span className="stat-value">
+                      {dashboardStats.averageRating}
+                    </span>
                   </div>
+
+                  <div className="card stat-card">
+                    <span className="stat-label">🍔 Top Selling Item</span>
+                    <span className="stat-value">
+                      {dashboardStats.topSellingItem}
+                    </span>
+                  </div>
+
+                </div>
+                <SalesChart orders={ordersHistory} />
+                <SalesPieChart orders={ordersHistory} />
+                <div style={{ marginTop: "30px" }}>
+                  <OrdersBarChart orders={ordersHistory} />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '30px' }}>
@@ -1090,6 +1487,7 @@ function App() {
         </div>
       )}
 
+
       {/* ADMIN ADD/EDIT MENU MODAL POPUP */}
       {isMenuModalOpen && (
         <div className="modal-overlay">
@@ -1166,16 +1564,26 @@ function App() {
                 onClick={() => { setIsMenuModalOpen(false); setEditingMenuItem(null); }}
               >
                 Cancel
-              </button>1
+              </button>
               <button type="submit" className="btn btn-primary">
                 Save Dish
               </button>
             </div>
           </form>
         </div>
+
+      )}
+      {showRatingModal && (
+        <RatingModal
+          rating={rating}
+          setRating={setRating}
+          review={review}
+          setReview={setReview}
+          onSubmit={handleSubmitRating}
+        />
       )}
     </div>
   );
-}
 
+}
 export default App;

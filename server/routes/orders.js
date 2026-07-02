@@ -6,7 +6,8 @@ import {
   getActiveOrders,
   getOrderHistory,
   getOrderById,
-  updateOrderStatus
+  updateOrderStatus,
+  getDashboardStats
 } from '../controllers/orderController.js';
 
 const router = express.Router();
@@ -20,6 +21,8 @@ router.get('/active', getActiveOrders);
 // Get order history/stats (Admin Protected)
 router.get('/history', getOrderHistory);
 
+// Get dashboard statistics (Admin Protected)
+router.get('/dashboard-stats', getDashboardStats);
 
 // Get single order status (Public for customer polling)
 router.get('/:id', getOrderById);

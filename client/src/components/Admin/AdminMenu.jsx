@@ -1,13 +1,17 @@
 const AdminMenu = ({
     adminActiveTab,
-    setAdminActiveTab
+    setAdminActiveTab,
+    setSidebarOpen,
 }) => {
     return (
         <nav className="admin-menu">
             <div
                 className={`admin-menu-item ${adminActiveTab === "orders" ? "active" : ""
                     }`}
-                onClick={() => setAdminActiveTab("orders")}
+                onClick={() => {
+                    setAdminActiveTab("orders");
+                    setSidebarOpen(false);
+                }}
             >
                 📋 Kitchen Orders
             </div>
@@ -15,7 +19,10 @@ const AdminMenu = ({
             <div
                 className={`admin-menu-item ${adminActiveTab === "menu-manager" ? "active" : ""
                     }`}
-                onClick={() => setAdminActiveTab("menu-manager")}
+                onClick={() => {
+                    setAdminActiveTab("menu-manager");
+                    setSidebarOpen(false);
+                }}
             >
                 🍔 Edit Menu Items
             </div>
@@ -23,7 +30,10 @@ const AdminMenu = ({
             <div
                 className={`admin-menu-item ${adminActiveTab === "qr-generator" ? "active" : ""
                     }`}
-                onClick={() => setAdminActiveTab("qr-generator")}
+                onClick={() => {
+                    setAdminActiveTab("qr-generator");
+                    setSidebarOpen(false);
+                }}
             >
                 🖨️ Table QR Codes
             </div>
@@ -31,9 +41,22 @@ const AdminMenu = ({
             <div
                 className={`admin-menu-item ${adminActiveTab === "stats" ? "active" : ""
                     }`}
-                onClick={() => setAdminActiveTab("stats")}
+                onClick={() => {
+                    setAdminActiveTab("stats");
+                    setSidebarOpen(false);
+                }}
             >
                 📈 Sales & Analytics
+            </div>
+            <div
+                className={`admin-menu-item ${adminActiveTab === "reviews" ? "active" : ""
+                    }`}
+                onClick={() => {
+                    setAdminActiveTab("reviews");
+                    setSidebarOpen(false);
+                }}
+            >
+                ⭐ Customer Reviews
             </div>
         </nav>
     );

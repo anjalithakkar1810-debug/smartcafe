@@ -28,7 +28,7 @@ export const getOrderById = async (orderId) => {
     return await response.json();
 };
 
-// Get Active Orders (Admin)
+// Get Active Orders
 export const getActiveOrders = async (token) => {
     const response = await fetch(`${API_BASE_URL}/orders/active`, {
         headers: {
@@ -43,7 +43,7 @@ export const getActiveOrders = async (token) => {
     return await response.json();
 };
 
-// Get Order History (Admin)
+// Get Order History
 export const getOrderHistory = async (token) => {
     const response = await fetch(`${API_BASE_URL}/orders/history`, {
         headers: {
@@ -58,7 +58,7 @@ export const getOrderHistory = async (token) => {
     return await response.json();
 };
 
-// Update Order Status (Admin)
+// Update Order Status
 export const updateOrderStatus = async (orderId, status, token) => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: "PUT",
@@ -71,6 +71,21 @@ export const updateOrderStatus = async (orderId, status, token) => {
 
     if (!response.ok) {
         throw new Error("Failed to update order status");
+    }
+
+    return await response.json();
+};
+
+// ✅ Dashboard Statistics (ye bahar rahega)
+export const getDashboardStats = async (token) => {
+    const response = await fetch(`${API_BASE_URL}/orders/dashboard-stats`, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch dashboard statistics");
     }
 
     return await response.json();
